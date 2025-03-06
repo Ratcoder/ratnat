@@ -154,8 +154,8 @@ void read_config(char *filename, struct config *config)
                 port[6]; // Maximum port 65535 is 5 bytes plus null
                 memset(port, 0, 6);
                 memcpy(port, buffer + left_pointer, value_length < 6 ? value_length : 6);
-                config->internal_port = atoi(port);
-                if (config->internal_port < 1024 || config->internal_port > 65535)
+                config->external_port = atoi(port);
+                if (config->external_port < 1024 || config->external_port > 65535)
                 {
                     fprintf(stderr, "Error reading config file: port must be between 1024-65535.\n");
                     exit(1);
