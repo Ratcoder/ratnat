@@ -1,0 +1,4 @@
+ratnat
+*.o
+config.txt
+.vscode
