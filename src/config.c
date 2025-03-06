@@ -239,7 +239,7 @@ int config_gen(char *path)
     dprintf(fd, "# The port of the internal service running behind NAT\n");
     dprintf(fd, "internal-port=\n");
     dprintf(fd, "# The port to expose the service on on the server\n");
-    dprintf(fd, "# Users can connect to tunnel-ip:external-port\n");
+    dprintf(fd, "# Users can connect to server-ip:external-port\n");
     dprintf(fd, "external-port=\n");
     
     close(fd);
