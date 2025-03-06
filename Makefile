@@ -8,4 +8,4 @@ clean :
 	rm ratnat $(objects)
 
 install :
-	cp ratnat /usr/bin/ratnat
+	cp ratnat /usr/local/bin/ratnat
