@@ -1,12 +1,3 @@
-///////////////////////////////////////////////////////////////////
-// Author: Pierce Gray
-// File Name: client.c
-// Purpose: This file implements the client side of the UDP tunnel.
-//         It listens for packets from the server and forwards them
-//         to the Minecraft server.
-///////////////////////////////////////////////////////////////////
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -67,7 +58,6 @@ int client(char *config_file)
     // Generate a session key
     uint8_t session_key[32];
     randombytes_buf(session_key, 32);
-    print_hex(session_key, 32);
 
     uint64_t connection_request_nonce = time(NULL);
 
@@ -80,38 +70,8 @@ int client(char *config_file)
     
     sendto(tunnel_socket, con_req_bytes, packet_size + 8, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
 
-    printf("Connecting to tunnel at port %d... and minecraft at port %d\n", config.tunnel_port, config.internal_port);
-    print_hex((uint8_t*) con_req_bytes, packet_size + 8);
-    // // Connect to the tunnel
-    // char register_message[8];
-    // *(uint64_t *) register_message = CONNECTION_REQUEST;
-    // sendto(tunnel_socket, register_message, strlen(register_message), 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
-    // printf("Connenting to tunnel...\n");
-
-    // // Receive the connection challenge
-    // buffer_len = recvfrom(tunnel_socket, buffer, BUFFER_SIZE, 0, NULL, NULL);
-    // if (buffer_len == -1)
-    // {
-    //     printf("Failed to connect to the tunnel\n"); return 1;
-    // }
-    // if (*(uint64_t *) buffer != CONNECTION_CHALLENGE || buffer_len != 64 + 8)
-    // {
-    //     printf("Invalid connection challenge\n"); return 1;
-    // }
-
-    // uint8_t key[32];
-    // for (int i = 0; i < 32; i++) key[i] = i; // TODO: Read the key from a file
-
-    // // Generate the proof
-    // memmove(buffer, buffer + 8, buffer_len);
-    // buffer_len -= 8;
-    // buffer_len = encrypt_packet(key, CONNECTION_PROOF, CLIENT_FLAG, buffer, buffer_len);
-    // printf("Given nonce:\n");
-    // print_hex(buffer, buffer_len);
-
-    // // Send the proof
-    // sendto(tunnel_socket, buffer, buffer_len, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
-
+    printf("Connecting to tunnel at port %d...\n", config.tunnel_port);
+    
     fcntl(tunnel_socket, F_SETFL, O_NONBLOCK);
 
     // Statistics

@@ -60,7 +60,6 @@ void read_config(char *filename, struct config *config)
     }
 
     int buffer_length = filestats.st_size;
-    printf("Made buffer of size %d\n", buffer_length);
     char *buffer = malloc(buffer_length);
     int buffer_offset = 0;
     int bytes_read;
@@ -86,8 +85,6 @@ void read_config(char *filename, struct config *config)
         fprintf(stderr, "Error reading config file: IO error.\n");
         exit(1);
     }
-
-    printf("read config file\n");
 
     // Parse file
     int variable = -1; // The current variable being parsed, -1 means no variable
@@ -131,7 +128,6 @@ void read_config(char *filename, struct config *config)
             switch (variable)
             {
             case 0: // secret-key
-                write(STDOUT_FILENO, buffer + left_pointer, value_length);
                 if (value_length != 32 * 2)
                 {
                     fprintf(stderr, "Error reading config file: s1ecret-key must be 32 bytes in hexidecimal.\n");

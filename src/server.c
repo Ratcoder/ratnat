@@ -1,12 +1,3 @@
-///////////////////////////////////////////////////////////////////
-// Author: Pierce Gray
-// File Name: tunnel.c
-// Purpose: This file implements the tunnel side of the UDP tunnel.
-//         It listens for packets from minecraft clients and
-//         forwards them to the tunnel client.
-///////////////////////////////////////////////////////////////////
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -94,19 +85,14 @@ int server(char *config_file)
             char buffer[PACKET_DATA_SIZE];
             struct encrypted_packet *auth_packet = (struct encrypted_packet *) (buffer + 8);
             int data_len = recvfrom(tunnel_socket, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &tunnel_addr, &address_len);
-            printf("Auth attemped\n");
+            
             if (data_len != 8 * 2 + 32 + crypto_aead_chacha20poly1305_IETF_ABYTES) continue;
-            printf("Auth attemped\n");
-
             if (*(uint64_t *) buffer != CONNECTION_REQUEST) continue;
-            printf("Auth attemped\n");
-            print_hex(buffer, data_len);
 
             int packet_len = decrypt_packet(config.secret_key, CLIENT_FLAG, auth_packet, data_len - 8);
-            printf("len %d\n", packet_len);
             if (packet_len != 32 + ENCRYPTED_PACKET_HEADER_SIZE) continue;
 
-            printf("Authenticated\n");
+            printf("Client connected\n");
             is_authenticated = 1;
             memcpy(session_key, auth_packet->data, 32);
 

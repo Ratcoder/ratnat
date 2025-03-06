@@ -28,7 +28,6 @@ int encrypt_packet(uint8_t *key, uint64_t nonce, uint8_t sender_flag, struct enc
 
     int result = crypto_aead_chacha20poly1305_ietf_encrypt(packet->data, &ciphertext_length, packet->data, data_len, NULL, 0, NULL, nonce_bytes, key);
     packet->nonce = nonce;
-    printf("len: %lld", ciphertext_length);
     return ciphertext_length + ENCRYPTED_PACKET_HEADER_SIZE;
 }
 
