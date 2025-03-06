@@ -96,6 +96,9 @@ int server(char *config_file)
             is_authenticated = 1;
             memcpy(session_key, auth_packet->data, 32);
 
+            uint64_t connection_accepted = CONNECTION_ACCEPTED;
+            sendto(tunnel_socket, &connection_accepted, sizeof(uint64_t), 0, (struct sockaddr *) &tunnel_addr, address_len);
+
             continue;
         }
 

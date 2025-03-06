@@ -7,7 +7,7 @@
 
 
 #define CONNECTION_REQUEST 1
-#define CONNECTION_RESPONCE 2
+#define CONNECTION_ACCEPTED 2
 #define TUNNEL_FLAG 0
 #define CLIENT_FLAG 1
 #define KEY_SIZE crypto_aead_chacha20poly1305_ietf_KEYBYTES

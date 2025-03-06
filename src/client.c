@@ -71,7 +71,23 @@ int client(char *config_file)
     sendto(tunnel_socket, con_req_bytes, packet_size + 8, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
 
     printf("Connecting to tunnel at port %d...\n", config.tunnel_port);
-    
+
+    // Wait for the responce
+    int data_len = recvfrom(tunnel_socket, packet.data, PACKET_DATA_SIZE, 0, NULL, NULL);
+    if (data_len != sizeof(uint64_t))
+    {
+        printf("Invalid responce.\n");
+        // TODO: Client should retry connection
+        return 1;
+    }
+    if (*(u_int64_t *) packet.data != CONNECTION_ACCEPTED)
+    {
+        printf("Invalid responce.\n");
+        return 1;
+    }
+    printf("Connected.\n");
+
+    // Set socket to be async
     fcntl(tunnel_socket, F_SETFL, O_NONBLOCK);
 
     // Statistics
