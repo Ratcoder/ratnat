@@ -68,7 +68,7 @@ int server(char *config_file)
     uint64_t message_nonce_counter = 4;
     uint8_t session_key[32];
 
-    printf("Tunnel listening on port %d\n", config.tunnel_port);
+    printf("Tunnel listening on port %d for service on port %d\n", config.tunnel_port, config.external_port);
 
     for (;;)
     {
@@ -106,7 +106,7 @@ int server(char *config_file)
         socklen_t recv_addr_len = sizeof(recv_addr);
         
         // Receive a packet from the tunnel client
-        int data_len = recvfrom(tunnel_socket, packet.data, BUFFER_SIZE, 0, (struct sockaddr *) &recv_addr, &recv_addr_len);
+        int data_len = recvfrom(tunnel_socket, &packet, BUFFER_SIZE, 0, (struct sockaddr *) &recv_addr, &recv_addr_len);
         if (data_len == -1) goto recv_from_minecraft;
 
         // Reject all packets not from the tunnel client
@@ -200,6 +200,7 @@ int server(char *config_file)
         // Encrypt the packet
         message_nonce_counter++;
         packet_len = encrypt_packet(session_key, message_nonce_counter, TUNNEL_FLAG, (struct encrypted_packet *) &packet, data_len);
+        print_hex((uint8_t*)&packet, packet_len);
         sendto(tunnel_socket, &packet, packet_len, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
     }
 }

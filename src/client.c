@@ -64,9 +64,9 @@ int client(char *config_file)
     // Connection request is: CONNECTION_REQUEST (u64) | PACKET (NONCE (u64) | SESSION_KEY (32b) | tag (16b))
     char con_req_bytes[8 * 2 + 32 + 16];
     *(uint64_t *) con_req_bytes = CONNECTION_REQUEST;
-    struct packet *con_req = (struct packet *) (con_req_bytes + 8);
+    struct encrypted_packet *con_req = (struct encrypted_packet *) (con_req_bytes + 8);
     memcpy(con_req->data, session_key, 32);
-    int packet_size = encrypt_packet(config.secret_key, connection_request_nonce, CLIENT_FLAG, (struct encrypted_packet *) con_req, 32);
+    int packet_size = encrypt_packet(config.secret_key, connection_request_nonce, CLIENT_FLAG, (struct encrypted_packet *) con_req, 32 - 4);
     
     sendto(tunnel_socket, con_req_bytes, packet_size + 8, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
 
@@ -109,8 +109,9 @@ int client(char *config_file)
         poll(poll_fds, num_connections + 1, -1);
 
         // Receive a packet from the tunnel
-        int data_len = recvfrom(tunnel_socket, packet.data, BUFFER_SIZE, 0, NULL, NULL);
+        int data_len = recvfrom(tunnel_socket, &packet, BUFFER_SIZE, 0, NULL, NULL);
         if (data_len == -1) {goto recv_from_minecraft;}
+        print_hex((uint8_t*) &packet, data_len);
 
         // Decrypt the packet
         int packet_len = decrypt_packet(session_key, TUNNEL_FLAG, (struct encrypted_packet *) &packet, data_len);

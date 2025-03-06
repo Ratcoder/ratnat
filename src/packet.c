@@ -26,7 +26,7 @@ int encrypt_packet(uint8_t *key, uint64_t nonce, uint8_t sender_flag, struct enc
     memset(nonce_bytes + 9, 0, 3);
     unsigned long long ciphertext_length;
 
-    int result = crypto_aead_chacha20poly1305_ietf_encrypt(packet->data, &ciphertext_length, packet->data, data_len, NULL, 0, NULL, nonce_bytes, key);
+    int result = crypto_aead_chacha20poly1305_ietf_encrypt(packet->data, &ciphertext_length, packet->data, data_len + PACKET_HEADER_SIZE - ENCRYPTED_PACKET_HEADER_SIZE, NULL, 0, NULL, nonce_bytes, key);
     packet->nonce = nonce;
     return ciphertext_length + ENCRYPTED_PACKET_HEADER_SIZE;
 }
