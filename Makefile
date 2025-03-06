@@ -1,8 +1,11 @@
 objects := $(patsubst %.c,%.o,$(wildcard src/*.c))
 
-ratnat : $(objects)
+ratnat : $(objects) -lsodium
 	gcc -o ratnat $(objects) -lsodium
 
-.PHONY : clean
+.PHONY : clean install
 clean :
 	rm ratnat $(objects)
+
+install :
+	cp ratnat /usr/bin/ratnat
