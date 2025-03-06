@@ -42,8 +42,7 @@ int main(int argc, char *argv[])
 void print_usage(char *cmd)
 {
     printf("Usage:\n");
-    printf("    %s client <config-file>\n", cmd);
-    printf("    %s server <config-file>\n", cmd);
+    printf("    %s client     <config-file>\n", cmd);
+    printf("    %s server     <config-file>\n", cmd);
     printf("    %s config-gen <config-file>\n", cmd);
-    printf("    %s help <config-file>\n", cmd);
 }
