@@ -20,7 +20,7 @@ tunnel-port=
 # The port of the internal service running behind NAT
 internal-port=
 # The port to expose the service on on the server
-# Users can connect to tunnel-ip:external-port
+# Users can connect to server-ip:external-port
 external-port=
 ```
 
