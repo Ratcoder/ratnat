@@ -82,47 +82,52 @@ int server(char *config_file)
         poll_fds[1].events = POLLIN;
         poll(poll_fds, 2, -1);
 
-        if (!is_authenticated)
-        {
-            int data_len = recvfrom(tunnel_socket, &packet, BUFFER_SIZE, 0, (struct sockaddr *) &tunnel_addr, &address_len);
-            if (data_len < GENERIC_PACKET_HEADER_SIZE || packet.type != MSG_CONNECTION_REQUEST) continue;
-
-            int packet_len = decrypt_packet(&packet, data_len, CLIENT_FLAG, config.secret_key);
-            if (packet_len != sizeof(struct connection_request_packet)) continue;
-            struct connection_request_packet *con_req = (struct connection_request_packet *) &packet;
-
-            printf("Client connected\n");
-            is_authenticated = 1;
-            memcpy(session_key, con_req->session_key, 32);
-
-            uint64_t connection_accepted = MSG_CONNECTION_ACCEPTED;
-            sendto(tunnel_socket, &connection_accepted, sizeof(connection_accepted), 0, (struct sockaddr *) &tunnel_addr, address_len);
-
-            continue;
-        }
-
+        // Receive a packet from the tunnel client
         struct sockaddr_in recv_addr;
         socklen_t recv_addr_len = sizeof(recv_addr);
-        
-        // Receive a packet from the tunnel client
         int data_len = recvfrom(tunnel_socket, &packet, BUFFER_SIZE, 0, (struct sockaddr *) &recv_addr, &recv_addr_len);
         if (data_len == -1) {
             goto recv_from_minecraft;
         }
 
-        // Reject all packets not from the tunnel client
-        if (recv_addr.sin_addr.s_addr != tunnel_addr.sin_addr.s_addr || recv_addr.sin_port != tunnel_addr.sin_port)
+        // Handle connection requests
+        if (packet.type == MSG_CONNECTION_REQUEST)
         {
-            printf("Received packet from unknown source.\n");
+            // Decrypt the packet
+            int packet_len = decrypt_packet(&packet, data_len, CLIENT_FLAG, config.secret_key);
+            if (packet_len == -1) {
+                printf("Rejected connection request\n");
+                continue; // Forgery detected, ignore the packet
+            }
+            if (packet_len != sizeof(struct connection_request_packet)) continue;
+
+            printf("Client connected\n");
+            tunnel_addr = recv_addr;
+            is_authenticated = 1;
+            struct connection_request_packet *con_req = (struct connection_request_packet *) &packet;
+            memcpy(session_key, con_req->session_key, 32);
+
+            uint64_t connection_accepted = MSG_CONNECTION_ACCEPTED;
+            sendto(tunnel_socket, &connection_accepted, sizeof(connection_accepted), 0, (struct sockaddr *) &tunnel_addr, address_len);
             continue;
         }
-        
+
+        if (!is_authenticated) continue;
+
         // Decrypt the packet
         int packet_len = decrypt_packet(&packet, data_len, CLIENT_FLAG, session_key);
         if (packet_len == -1) {
             printf("Decryption failed\n");
             continue; // Forgery detected, ignore the packet
         }
+        // Reject all packets not from the tunnel client
+        if (recv_addr.sin_addr.s_addr != tunnel_addr.sin_addr.s_addr || recv_addr.sin_port != tunnel_addr.sin_port)
+        {
+            printf("Received packet from unknown source.\n");
+            continue;
+        }
+
+        // Handle service packets
         if (packet.type != MSG_SERVICE || packet_len < SERVICE_PACKET_HEADER_SIZE)
         {
             printf("Invalid packet type\n");
