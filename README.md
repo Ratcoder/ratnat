@@ -15,11 +15,11 @@ ratnat config-gen <path>
 secret-key=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
 # The ip of the ratnat server
 server-ip=
-# The port used by the natnat tunnel
+# The port used by the ratnat tunnel
 tunnel-port=
 # The port of the internal service running behind NAT
 internal-port=
-# The port to expose the service on on the server
+# The port to expose the service on
 # Users can connect to server-ip:external-port
 external-port=
 ```
