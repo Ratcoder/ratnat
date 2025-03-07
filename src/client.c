@@ -14,6 +14,7 @@
 #include "config.h"
 #include <poll.h>
 #include <sodium.h>
+#include <errno.h>
 
 
 #define BUFFER_SIZE 1<<16
@@ -52,7 +53,8 @@ int client(char *config_file)
     struct connection connections[MAX_CONNECTIONS];
     for (int i = 0; i < MAX_CONNECTIONS; i++) connections[i].socket = -1;
     int num_connections = 0;
-    struct packet packet;
+    struct generic_packet packet;
+    struct service_packet *service_packet = (struct service_packet *) &packet;
     uint64_t message_nonce_counter = 100;
 
     // Generate a session key
@@ -61,26 +63,25 @@ int client(char *config_file)
 
     uint64_t connection_request_nonce = time(NULL);
 
-    // Connection request is: CONNECTION_REQUEST (u64) | PACKET (NONCE (u64) | SESSION_KEY (32b) | tag (16b))
-    char con_req_bytes[8 * 2 + 32 + 16];
-    *(uint64_t *) con_req_bytes = CONNECTION_REQUEST;
-    struct encrypted_packet *con_req = (struct encrypted_packet *) (con_req_bytes + 8);
-    memcpy(con_req->data, session_key, 32);
-    int packet_size = encrypt_packet(config.secret_key, connection_request_nonce, CLIENT_FLAG, (struct encrypted_packet *) con_req, 32 - 4);
-    
-    sendto(tunnel_socket, con_req_bytes, packet_size + 8, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
-
     printf("Connecting to tunnel at port %d...\n", config.tunnel_port);
+    struct connection_request_packet *con_req = (struct connection_request_packet *) &packet;
+    con_req->type = MSG_CONNECTION_REQUEST;
+    con_req->nonce = connection_request_nonce;
+    memcpy(con_req->session_key, session_key, 32);
+
+    int packet_size = encrypt_packet(&packet, sizeof(struct connection_request_packet), CLIENT_FLAG, config.secret_key, connection_request_nonce);
+    sendto(tunnel_socket, con_req, packet_size, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
 
     // Wait for the responce
-    int data_len = recvfrom(tunnel_socket, packet.data, PACKET_DATA_SIZE, 0, NULL, NULL);
+    printf("Waiting for connection...\n");
+    int data_len = recvfrom(tunnel_socket, &packet, PACKET_DATA_SIZE, 0, NULL, NULL);
     if (data_len != sizeof(uint64_t))
     {
         printf("Invalid responce.\n");
         // TODO: Client should retry connection
         return 1;
     }
-    if (*(u_int64_t *) packet.data != CONNECTION_ACCEPTED)
+    if (packet.type != MSG_CONNECTION_ACCEPTED)
     {
         printf("Invalid responce.\n");
         return 1;
@@ -110,14 +111,22 @@ int client(char *config_file)
 
         // Receive a packet from the tunnel
         int data_len = recvfrom(tunnel_socket, &packet, BUFFER_SIZE, 0, NULL, NULL);
-        if (data_len == -1) {goto recv_from_minecraft;}
-        print_hex((uint8_t*) &packet, data_len);
+        if (data_len == -1)
+        {
+            goto recv_from_minecraft;
+        }
 
         // Decrypt the packet
-        int packet_len = decrypt_packet(session_key, TUNNEL_FLAG, (struct encrypted_packet *) &packet, data_len);
+        int packet_len = decrypt_packet(&packet, data_len, TUNNEL_FLAG, session_key);
         if (packet_len == -1) {
             printf("Forged packet\n");
             continue; // Forged packet, ignore it.
+        }
+
+        if (packet.type != MSG_SERVICE)
+        {
+            printf("Invalid packet type\n");
+            continue;
         }
 
         packets_count++;
@@ -129,7 +138,7 @@ int client(char *config_file)
         int connection_index = -1;
         for (int i = 0; i < num_connections; i++)
         {
-            if (connections[i].id == packet.connection_id)
+            if (connections[i].id == service_packet->connection_id)
             {
                 connection_found = 1;
                 connection_index = i;
@@ -163,7 +172,7 @@ int client(char *config_file)
             }
 
             struct connection new_connection;
-            new_connection.id = packet.connection_id;
+            new_connection.id = service_packet->connection_id;
             new_connection.socket = socket(AF_INET, SOCK_DGRAM, 0);
             new_connection.addr.sin_family = AF_INET;
             new_connection.addr.sin_port = 0; // Bind to any available port
@@ -181,8 +190,8 @@ int client(char *config_file)
         // Update the last activity time
         connections[connection_index].last_activity = time(NULL);
 
-        // Send the packet to the Minecraft server, skipping the first 4 bytes
-        sendto(connections[connection_index].socket, packet.data, packet_len - PACKET_HEADER_SIZE, 0, (struct sockaddr *) &minecraft_addr, sizeof(minecraft_addr));
+        // Send the packet data to the service
+        sendto(connections[connection_index].socket, service_packet->data, packet_len - SERVICE_PACKET_HEADER_SIZE, 0, (struct sockaddr *) &minecraft_addr, sizeof(minecraft_addr));
 
         #ifdef TRACE
         printf("To minecraft server: message %d of len %d\n", recv_message_counter, buffer_len - 8);
@@ -191,17 +200,21 @@ int client(char *config_file)
 
         recv_from_minecraft:;
 
-        // Receive packets from the Minecraft server
+        // Receive packets from the service
         for (int i = 0; i < num_connections; i++)
         {
             if (connections[i].socket == -1) continue;
 
-            data_len = recvfrom(connections[i].socket, packet.data, BUFFER_SIZE, 0, NULL, NULL);
-            if (data_len == -1) continue;
+            data_len = recvfrom(connections[i].socket, service_packet->data, BUFFER_SIZE, 0, NULL, NULL);
+            if (data_len == -1) {
+                continue;
+            }
 
-            packet.connection_id = connections[i].id;
+            service_packet->type = MSG_SERVICE;
+            service_packet->connection_id = connections[i].id;
+            packet_len = data_len + SERVICE_PACKET_HEADER_SIZE;
             message_nonce_counter++;
-            packet_len = encrypt_packet(session_key, message_nonce_counter, CLIENT_FLAG, (struct encrypted_packet *) &packet, data_len);
+            packet_len = encrypt_packet(&packet, packet_len, CLIENT_FLAG, session_key, message_nonce_counter);
             sendto(tunnel_socket, &packet, packet_len, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
 
             packets_count++;

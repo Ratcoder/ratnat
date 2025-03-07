@@ -1,11 +1,3 @@
-///////////////////////////////////////////////////////////////////
-// Author: Pierce Gray
-// File Name: shared.c
-// Purpose: Contains the shared functions and constants for used
-//          in both the client and tunnel programs.
-///////////////////////////////////////////////////////////////////
-
-
 #include "packet.h"
 #include <stdint.h>
 #include <string.h>
@@ -18,7 +10,7 @@
 #include <sodium.h>
 
 
-int encrypt_packet(uint8_t *key, uint64_t nonce, uint8_t sender_flag, struct encrypted_packet *packet, int data_len)
+int encrypt_packet(struct generic_packet *packet, int packet_len, uint8_t sender_flag, uint8_t *key, uint64_t nonce)
 {
     uint8_t nonce_bytes[12];
     memcpy(nonce_bytes, &nonce, 8);
@@ -26,14 +18,14 @@ int encrypt_packet(uint8_t *key, uint64_t nonce, uint8_t sender_flag, struct enc
     memset(nonce_bytes + 9, 0, 3);
     unsigned long long ciphertext_length;
 
-    int result = crypto_aead_chacha20poly1305_ietf_encrypt(packet->data, &ciphertext_length, packet->data, data_len + PACKET_HEADER_SIZE - ENCRYPTED_PACKET_HEADER_SIZE, NULL, 0, NULL, nonce_bytes, key);
+    int result = crypto_aead_chacha20poly1305_ietf_encrypt(packet->data, &ciphertext_length, packet->data, packet_len - GENERIC_PACKET_HEADER_SIZE, NULL, 0, NULL, nonce_bytes, key);
     packet->nonce = nonce;
-    return ciphertext_length + ENCRYPTED_PACKET_HEADER_SIZE;
+    return ciphertext_length + GENERIC_PACKET_HEADER_SIZE;
 }
 
-int decrypt_packet(uint8_t *key, uint8_t sender_flag, struct encrypted_packet *packet, int packet_len)
+int decrypt_packet(struct generic_packet *packet, int packet_len, uint8_t sender_flag, uint8_t *key)
 {
-    if (packet_len < ENCRYPTED_PACKET_HEADER_SIZE) return -1;
+    if (packet_len < GENERIC_PACKET_HEADER_SIZE) return -1;
 
     // First 8 bytes of the nonce are the nonce, the 9th byte is the sender flag
     uint8_t nonce_bytes[12];
@@ -43,9 +35,9 @@ int decrypt_packet(uint8_t *key, uint8_t sender_flag, struct encrypted_packet *p
 
     unsigned long long plaintext_len;
 
-    int result = crypto_aead_chacha20poly1305_ietf_decrypt(packet->data, &plaintext_len, NULL, packet->data, packet_len - ENCRYPTED_PACKET_HEADER_SIZE, NULL, 0, nonce_bytes, key);
+    int result = crypto_aead_chacha20poly1305_ietf_decrypt(packet->data, &plaintext_len, NULL, packet->data, packet_len - GENERIC_PACKET_HEADER_SIZE, NULL, 0, nonce_bytes, key);
     if (result != 0) return -1;
-    return plaintext_len + ENCRYPTED_PACKET_HEADER_SIZE;
+    return plaintext_len + GENERIC_PACKET_HEADER_SIZE;
 }
 
 void print_hex(uint8_t *data, int len)
