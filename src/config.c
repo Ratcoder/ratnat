@@ -165,7 +165,7 @@ void read_config(char *filename, struct config *config)
                 memset(port, 0, 6);
                 memcpy(port, buffer + left_pointer, value_length < 6 ? value_length : 6);
                 config->tunnel_port = atoi(port);
-                if (config->internal_port < 1024 || config->internal_port > 65535)
+                if (config->tunnel_port < 1024 || config->tunnel_port > 65535)
                 {
                     fprintf(stderr, "Error reading config file: port must be between 1024-65535.\n");
                     exit(1);
