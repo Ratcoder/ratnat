@@ -125,6 +125,8 @@ void read_config(char *filename, struct config *config)
         else if (buffer[right_pointer] == '\n' || buffer[right_pointer] == '\r')
         {
             int value_length = right_pointer - left_pointer;
+            char port[6]; // Maximum port 65535 is 5 bytes plus null
+            char ip[16]; // Longest ip is 15 bytes (xxx.xxx.xxx.xxx) plus null
             switch (variable)
             {
             case 0: // secret-key
@@ -140,7 +142,6 @@ void read_config(char *filename, struct config *config)
                 }
                 break;
             case 1: // internal-port
-                char port[6]; // Maximum port 65535 is 5 bytes plus null
                 memset(port, 0, 6);
                 memcpy(port, buffer + left_pointer, value_length < 6 ? value_length : 6);
                 config->internal_port = atoi(port);
@@ -151,7 +152,6 @@ void read_config(char *filename, struct config *config)
                 }
                 break;
             case 2: // external-port
-                port[6]; // Maximum port 65535 is 5 bytes plus null
                 memset(port, 0, 6);
                 memcpy(port, buffer + left_pointer, value_length < 6 ? value_length : 6);
                 config->external_port = atoi(port);
@@ -162,7 +162,6 @@ void read_config(char *filename, struct config *config)
                 }
                 break;
             case 3: // tunnel-port
-                port[6]; // Maximum port 65535 is 5 bytes plus null
                 memset(port, 0, 6);
                 memcpy(port, buffer + left_pointer, value_length < 6 ? value_length : 6);
                 config->tunnel_port = atoi(port);
@@ -173,7 +172,6 @@ void read_config(char *filename, struct config *config)
                 }
                 break;
             case 4: // tunnel-ip
-                char ip[16]; // Longest ip is 15 bytes (xxx.xxx.xxx.xxx) plus null
                 memset(port, 0, 6);
                 memcpy(ip, buffer + left_pointer, value_length < 16 ? value_length : 16);
                 config->tunnel_ip = inet_addr(ip);
