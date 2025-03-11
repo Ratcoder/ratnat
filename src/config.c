@@ -93,7 +93,7 @@ void read_config(char *filename, struct config *config)
         "internal-port",
         "external-port",
         "tunnel-port",
-        "tunnel-ip"
+        "server-ip"
     };
     const int nbr_of_vars = sizeof(variables) / sizeof(char*);
     int is_var_defined[nbr_of_vars];
@@ -171,13 +171,13 @@ void read_config(char *filename, struct config *config)
                     exit(1);
                 }
                 break;
-            case 4: // tunnel-ip
+            case 4: // server-ip
                 memset(port, 0, 6);
                 memcpy(ip, buffer + left_pointer, value_length < 16 ? value_length : 16);
                 config->tunnel_ip = inet_addr(ip);
                 if (config->tunnel_ip == -1)
                 {
-                    fprintf(stderr, "Error reading config file: Invalid tunnel-ip.\n");
+                    fprintf(stderr, "Error reading config file: Invalid server-ip.\n");
                     exit(1);
                 }
                 break;
