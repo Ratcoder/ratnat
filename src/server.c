@@ -199,11 +199,11 @@ int server(char *config_file)
                 }
             }
 
-            printf("Created new connection with ID %d\n", num_connections);
-            connections[num_connections].id = connection_id_counter++;
-            connections[num_connections].addr = client_addr;
+            connection_index = num_connections;
+            connections[connection_index].id = connection_id_counter++;
+            connections[connection_index].addr = client_addr;
             num_connections++;
-            connection_index = num_connections - 1;
+            printf("Created new connection with ID %d\n", connections[connection_index].id);
         }
 
         // Update the last activity time
