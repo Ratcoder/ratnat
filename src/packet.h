@@ -9,6 +9,8 @@
 #define MSG_SERVICE 0
 #define MSG_CONNECTION_REQUEST 1
 #define MSG_CONNECTION_ACCEPTED 2
+#define MSG_PING_REQUEST 3
+#define MSG_PING_RESPONCE 4
 #define TUNNEL_FLAG 0
 #define CLIENT_FLAG 1
 #define KEY_SIZE crypto_aead_chacha20poly1305_ietf_KEYBYTES

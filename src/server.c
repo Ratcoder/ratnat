@@ -114,6 +114,14 @@ int server(char *config_file)
 
         if (!is_authenticated) continue;
 
+        // Handle keepalive
+        if (packet.type == MSG_PING_REQUEST)
+        {
+            packet.type = MSG_PING_RESPONCE;
+            sendto(tunnel_socket, &packet, 1, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
+            goto recv_from_minecraft;
+        }
+
         // Decrypt the packet
         int packet_len = decrypt_packet(&packet, data_len, CLIENT_FLAG, session_key);
         if (packet_len == -1) {

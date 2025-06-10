@@ -49,6 +49,7 @@ int client(char *config_file)
 
     // Create the tunnel socket
     int tunnel_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    time_t tunnel_last_recv;
 
     struct connection connections[MAX_CONNECTIONS];
     for (int i = 0; i < MAX_CONNECTIONS; i++) connections[i].socket = -1;
@@ -87,6 +88,7 @@ int client(char *config_file)
         return 1;
     }
     printf("Connected.\n");
+    tunnel_last_recv = time(NULL);
 
     // Set socket to be async
     fcntl(tunnel_socket, F_SETFL, O_NONBLOCK);
@@ -107,11 +109,29 @@ int client(char *config_file)
             poll_fds[i].fd = connections[i].socket;
             poll_fds[i].events = POLLIN;
         }
-        poll(poll_fds, num_connections + 1, -1);
+        poll(poll_fds, num_connections + 1, 5000);
 
         // Receive a packet from the tunnel
         int data_len = recvfrom(tunnel_socket, &packet, BUFFER_SIZE, 0, NULL, NULL);
         if (data_len == -1)
+        {
+            if (time(NULL) - tunnel_last_recv >= 60)
+            {
+                printf("Connection lost.\n");
+                exit(1);
+            }
+            else if (time(NULL) - tunnel_last_recv >= 20)
+            {
+                packet.type = MSG_PING_REQUEST;
+                printf("ping\n");
+                sendto(tunnel_socket, &packet, 1, 0, (struct sockaddr *) &tunnel_addr, sizeof(tunnel_addr));
+            }
+            goto recv_from_minecraft;
+        }
+        tunnel_last_recv = time(NULL);
+
+        // Ignore keepalive packets (time is already updated)
+        if (packet.type == MSG_PING_RESPONCE)
         {
             goto recv_from_minecraft;
         }
